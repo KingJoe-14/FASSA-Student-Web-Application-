@@ -4,16 +4,16 @@ from django.contrib.auth.password_validation import validate_password
 from .utils import (
     generate_temporary_password,
     send_account_email,
-    send_student_verification_email,
+    send_student_verification_otp,
 )
+from .models import AccountVerificationOTP
+
 
 User = get_user_model()
 
 
 class StudentRegistrationSerializer(serializers.ModelSerializer):
-    password = serializers.CharField(
-        write_only=True, required=True, validators=[validate_password]
-    )
+    password = serializers.CharField(write_only=True, required=True, validators=[validate_password])
     confirm_password = serializers.CharField(write_only=True, required=True)
 
     class Meta:
@@ -23,12 +23,6 @@ class StudentRegistrationSerializer(serializers.ModelSerializer):
     def validate(self, attrs):
         if attrs['password'] != attrs['confirm_password']:
             raise serializers.ValidationError({"password": "Passwords do not match."})
-
-        if not attrs['email'].endswith('@ttu.edu.gh'):
-            raise serializers.ValidationError(
-                {"email": "Students must register with a valid TTU email (e.g., bcict22153@ttu.edu.gh)."}
-            )
-
         return attrs
 
     def create(self, validated_data):
@@ -40,14 +34,24 @@ class StudentRegistrationSerializer(serializers.ModelSerializer):
             index_number=validated_data['index_number'],
             role='STUDENT',
             password=validated_data['password'],
-            is_active=False,
+            is_active=False,  # inactive until verified
+            is_verified=False  # custom field for verification
         )
 
-        # Send verification email
-        send_student_verification_email(
-            user_email=user.email,
+        # --- Generate OTP for verification ---
+        otp_code = AccountVerificationOTP.generate_otp()
+
+        # Save OTP in the database
+        AccountVerificationOTP.objects.create(
+            email=user.email,
+            otp=otp_code
+        )
+
+        # Send email to user
+        send_student_verification_otp(
+            email=user.email,
             full_name=user.full_name,
-            verification_token=str(user.verification_token),
+            otp=otp_code
         )
 
         return user
@@ -69,38 +73,24 @@ class SuperAdminUserSerializer(serializers.ModelSerializer):
 
         if role == 'STUDENT':
             if not index_number:
-                raise serializers.ValidationError(
-                    {"index_number": "Index number is required for student accounts."}
-                )
-            if not attrs['email'].endswith('@ttu.edu.gh'):
-                raise serializers.ValidationError(
-                    {"email": "Students must use a valid TTU email (e.g., bcict22153@ttu.edu.gh)."}
-                )
+                raise serializers.ValidationError({"index_number": "Index number is required for student accounts."})
             if position:
-                raise serializers.ValidationError(
-                    {"position": "Students should not have a position field."}
-                )
+                raise serializers.ValidationError({"position": "Students should not have a position field."})
 
         elif role == 'ADMIN':
             if not position:
-                raise serializers.ValidationError(
-                    {"position": "Position is required for admin accounts."}
-                )
+                raise serializers.ValidationError({"position": "Position is required for admin accounts."})
             if index_number:
-                raise serializers.ValidationError(
-                    {"index_number": "Admins should not have an index number."}
-                )
+                raise serializers.ValidationError({"index_number": "Admins should not have an index number."})
 
         return attrs
 
     def create(self, validated_data):
-        role = validated_data.get('role')
         temp_password = generate_temporary_password()
-
         user = User.objects.create_user(
             email=validated_data['email'],
             full_name=validated_data['full_name'],
-            role=role,
+            role=validated_data['role'],
             index_number=validated_data.get('index_number'),
             position=validated_data.get('position'),
             password=temp_password,
@@ -132,7 +122,8 @@ class PasswordResetRequestSerializer(serializers.Serializer):
 
 
 class PasswordResetConfirmSerializer(serializers.Serializer):
-    token = serializers.UUIDField()
+    email = serializers.EmailField()
+    otp = serializers.CharField(max_length=6)
     new_password = serializers.CharField(write_only=True, validators=[validate_password])
     confirm_password = serializers.CharField(write_only=True)
 
@@ -141,8 +132,9 @@ class PasswordResetConfirmSerializer(serializers.Serializer):
             raise serializers.ValidationError({"password": "Passwords do not match."})
         return attrs
 
-#Admin/super admin managing student
+
 class StudentManagementSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = ['id', 'full_name', 'email', 'index_number', 'is_active']
+

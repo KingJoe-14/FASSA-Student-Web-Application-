@@ -4,6 +4,7 @@ from django.core.exceptions import ValidationError
 import uuid
 from django.utils import timezone
 from datetime import timedelta
+import random
 
 
 class UserManager(BaseUserManager):
@@ -23,11 +24,7 @@ class UserManager(BaseUserManager):
 
         email = self.normalize_email(email)
 
-        # Enforce TTU email for students only
-        if role == 'STUDENT' and not email.endswith('@ttu.edu.gh'):
-            raise ValidationError(
-                "Students must register with a valid TTU email (e.g., bcict22153@ttu.edu.gh)"
-            )
+        # Email restriction removed — students can now use any email.
 
         user = self.model(email=email, full_name=full_name, role=role, **extra_fields)
         user.set_password(password)
@@ -76,27 +73,38 @@ class User(AbstractBaseUser, PermissionsMixin):
         return f"{self.full_name} ({self.role})"
 
     def clean(self):
-        """
-        Additional validation for the user model.
-        Ensures students use valid TTU email.
-        """
-        if self.role == 'STUDENT' and not self.email.endswith('@ttu.edu.gh'):
-            raise ValidationError("Students must use a valid TTU email (e.g., bcict22153@ttu.edu.gh)")
+        pass
 
 
-class PasswordReset(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
-    token = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
+class AccountVerificationOTP(models.Model):
+    email = models.EmailField()
+    otp = models.CharField(max_length=6)
     created_at = models.DateTimeField(auto_now_add=True)
-    expires_at = models.DateTimeField()
-
-    def save(self, *args, **kwargs):
-        if not self.expires_at:
-            self.expires_at = timezone.now() + timedelta(hours=1)  # token valid for 1 hour
-        super().save(*args, **kwargs)
 
     def is_expired(self):
-        return timezone.now() > self.expires_at
+        return timezone.now() > self.created_at + timedelta(minutes=10)
+
+    @staticmethod
+    def generate_otp():
+        return str(random.randint(100000, 999999))
 
     def __str__(self):
-        return f"{self.user.email} - {self.token}"
+        return f"{self.email} - {self.otp}"
+
+
+class PasswordResetOTP(models.Model):
+    email = models.EmailField()
+    otp = models.CharField(max_length=6)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def is_expired(self):
+        return timezone.now() > self.created_at + timedelta(minutes=10)
+
+    def __str__(self):
+        return f"{self.email} - {self.otp}"
+
+    @classmethod
+    def generate_otp(cls):
+        """Generate a 6-digit numeric OTP"""
+        from random import randint
+        return f"{randint(100000, 999999)}"
