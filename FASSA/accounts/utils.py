@@ -3,6 +3,11 @@ from django.conf import settings
 import string
 import random
 
+
+from django.core.mail import send_mail
+from django.conf import settings
+
+#temporary password
 def generate_temporary_password(length=10):
     """Generate a random temporary password."""
     chars = string.ascii_letters + string.digits + string.punctuation
@@ -30,40 +35,46 @@ FASSA
     from_email = f"FASSA <{settings.EMAIL_HOST_USER}>"
     send_mail(subject, message, from_email, [user_email], fail_silently=False)
 
-
-def send_student_verification_email(user_email, full_name, verification_token):
+#verify account
+def send_student_verification_otp(email, full_name, otp):
     subject = "Verify Your FASSA Account"
-    verification_link = f"http://127.0.0.1:8000/api/accounts/verify/{verification_token}/"
     message = f"""
 Hello {full_name},
 
-Thank you for registering at FASSA. Please verify your account by clicking the link below:
+Your FASSA account verification OTP is: {otp}
 
-{verification_link}
+It will expire in 10 minutes.
 
-Once verified, you can log in using your email and password.
-
-Regards,
-FASSA
-"""
-    from_email = f"FASSA <{settings.EMAIL_HOST_USER}>"
-    send_mail(subject, message, from_email, [user_email], fail_silently=False)
-
-
-def send_password_reset_email(email, token):
-    reset_link = f"http://127.0.0.1:8000/api/accounts/password-reset/confirm/?token={token}"
-    subject = "Reset Your FASSA Password"
-    message = f"""
-Hello,
-
-Click the link below to reset your password:
-
-{reset_link}
-
-If you did not request this, ignore this email.
+If you did not register, please ignore this email.
 
 Regards,
 FASSA
 """
     from_email = f"FASSA <{settings.EMAIL_HOST_USER}>"
     send_mail(subject, message, from_email, [email], fail_silently=False)
+
+
+#reset password
+def send_password_reset_otp(email, otp):
+    """
+    Sends a 6-digit OTP to the user's email for password reset.
+    """
+    subject = "FASSA Password Reset OTP"
+    message = f"""
+Hello,
+
+Your OTP code to reset your FASSA password is:
+
+{otp}
+
+It expires in 10 minutes.
+
+If you did not request this, please ignore this email.
+
+Regards,
+FASSA
+"""
+    from_email = f"FASSA <{settings.EMAIL_HOST_USER}>"
+    send_mail(subject, message, from_email, [email], fail_silently=False)
+
+
