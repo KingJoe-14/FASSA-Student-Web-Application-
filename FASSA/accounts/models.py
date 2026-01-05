@@ -24,7 +24,6 @@ class UserManager(BaseUserManager):
 
         email = self.normalize_email(email)
 
-        # Email restriction removed — students can now use any email.
 
         user = self.model(email=email, full_name=full_name, role=role, **extra_fields)
         user.set_password(password)
