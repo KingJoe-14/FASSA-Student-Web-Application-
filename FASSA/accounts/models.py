@@ -104,6 +104,5 @@ class PasswordResetOTP(models.Model):
 
     @classmethod
     def generate_otp(cls):
-        """Generate a 6-digit numeric OTP"""
         from random import randint
         return f"{randint(100000, 999999)}"
