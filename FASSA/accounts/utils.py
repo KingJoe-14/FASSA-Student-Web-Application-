@@ -43,7 +43,7 @@ Hello {full_name},
 
 Your FASSA account verification OTP is: {otp}
 
-It will expire in 10 minutes.
+It will expire in 5 minutes.
 
 If you did not register, please ignore this email.
 
@@ -67,7 +67,7 @@ Your OTP code to reset your FASSA password is:
 
 {otp}
 
-It expires in 10 minutes.
+It expires in 5 minutes.
 
 If you did not request this, please ignore this email.
 
@@ -76,5 +76,23 @@ FASSA
 """
     from_email = f"FASSA <{settings.EMAIL_HOST_USER}>"
     send_mail(subject, message, from_email, [email], fail_silently=False)
+
+
+# accounts/utils.py
+
+from django.core.mail import send_mail
+from django.conf import settings
+
+def send_verification_otp(email, otp):
+    """
+    Sends account verification OTP to user's email.
+    """
+    subject = "Your Account Verification Code"
+    message = f"Your OTP code is: {otp}\nIt will expire in 5 minutes."
+    from_email = settings.DEFAULT_FROM_EMAIL
+    recipient_list = [email]
+
+    send_mail(subject, message, from_email, recipient_list)
+
 
 

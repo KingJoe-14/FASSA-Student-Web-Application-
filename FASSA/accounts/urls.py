@@ -1,5 +1,6 @@
 from django.urls import path
 from .views import LoginView, UserProfileView, StudentRegisterView, SuperAdminUserView, VerifyStudentAccountView
+from .views import ResendVerificationOTPView
 from .views import PasswordResetRequestView, PasswordResetConfirmView
 from .views import StudentListView, StudentDetailView
 from .views import AdminListView, AdminDetailView
@@ -12,6 +13,7 @@ urlpatterns = [
     path('profile/', UserProfileView.as_view(), name='profile'),
     path('users/', SuperAdminUserView.as_view(), name='superadmin-users'),
     path('verify/', VerifyStudentAccountView.as_view(), name='verify-student'),
+    path("resend/", ResendVerificationOTPView.as_view(), name="resend-verification-otp"),
     path('password-reset/', PasswordResetRequestView.as_view(), name='password-reset-request'),
     path('password-reset/confirm/', PasswordResetConfirmView.as_view(), name='password-reset-confirm'),
     path('students/', StudentListView.as_view(), name='student-list'),
