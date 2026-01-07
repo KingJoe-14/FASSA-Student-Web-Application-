@@ -1,6 +1,7 @@
 from rest_framework import serializers
 from admin_panel.models import Course, Timetable
 from .models import CourseRegistration
+from clubs.models import Club
 
 class CourseListSerializer(serializers.ModelSerializer):
     class Meta:
@@ -30,3 +31,5 @@ class TimetableEntrySerializer(serializers.ModelSerializer):
     class Meta:
         model = Timetable
         fields = ['id', 'course', 'course_code', 'course_title', 'day_of_week', 'start_time', 'end_time', 'venue']
+
+

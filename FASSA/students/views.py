@@ -1,5 +1,3 @@
-# students/views.py
-
 from rest_framework import generics, permissions, filters
 from rest_framework.permissions import IsAuthenticated
 
