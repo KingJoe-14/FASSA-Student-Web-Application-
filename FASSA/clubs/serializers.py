@@ -3,6 +3,15 @@ from clubs.models import Club, ClubMembership, ClubEvent
 from accounts.models import User
 
 # -------------------------------
+# STUDENT SERIALIZER (nested for ClubMembership)
+# -------------------------------
+class StudentSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = ['id', 'email', 'full_name']
+
+
+# -------------------------------
 # CLUB SERIALIZER
 # -------------------------------
 class ClubSerializer(serializers.ModelSerializer):
@@ -17,11 +26,13 @@ class ClubSerializer(serializers.ModelSerializer):
 # -------------------------------
 class ClubMembershipSerializer(serializers.ModelSerializer):
     student_email = serializers.EmailField(write_only=True)
+    student = StudentSerializer(read_only=True)
+    club = serializers.PrimaryKeyRelatedField(read_only=True)  # make read-only
 
     class Meta:
         model = ClubMembership
         fields = ['id', 'club', 'student', 'student_email', 'role', 'joined_at']
-        read_only_fields = ['id', 'student', 'joined_at']
+        read_only_fields = ['id', 'student', 'joined_at', 'club']
 
     def validate_student_email(self, email):
         try:
@@ -31,7 +42,7 @@ class ClubMembershipSerializer(serializers.ModelSerializer):
         return user
 
     def create(self, validated_data):
-        # Convert the email to the actual student object
+        # Convert student_email into actual student object
         student = validated_data.pop('student_email')
         validated_data['student'] = student
         return super().create(validated_data)
@@ -43,5 +54,8 @@ class ClubMembershipSerializer(serializers.ModelSerializer):
 class ClubEventSerializer(serializers.ModelSerializer):
     class Meta:
         model = ClubEvent
-        fields = ['id', 'club', 'title', 'description', 'venue', 'event_date', 'is_approved', 'created_by', 'created_at']
+        fields = [
+            'id', 'club', 'title', 'description', 'venue',
+            'event_date', 'is_approved', 'created_by', 'created_at'
+        ]
         read_only_fields = ['id', 'created_by', 'created_at']

@@ -1,29 +1,21 @@
-from rest_framework import generics, status
+from rest_framework import generics
 from rest_framework.permissions import IsAuthenticated
-from rest_framework.response import Response
-from rest_framework.exceptions import PermissionDenied
 from accounts.permissions import IsAdmin, IsSuperAdmin
 from clubs.models import Club, ClubMembership, ClubEvent
 from clubs.serializers import ClubSerializer, ClubMembershipSerializer, ClubEventSerializer
-from accounts.models import User
-
 
 # -------------------------------
 # CLUB CRUD (Admins & Superadmins)
 # -------------------------------
 class AdminClubListCreateView(generics.ListCreateAPIView):
-    """
-    List all clubs or create a new club (Admin/Superadmin)
-    """
+    """List all clubs or create a new club (Admin/Superadmin)"""
     serializer_class = ClubSerializer
     permission_classes = [IsAuthenticated, IsAdmin | IsSuperAdmin]
     queryset = Club.objects.all().order_by('-created_at')
 
 
 class AdminClubRetrieveUpdateDeleteView(generics.RetrieveUpdateDestroyAPIView):
-    """
-    Retrieve, update, or delete a club
-    """
+    """Retrieve, update, or delete a club"""
     serializer_class = ClubSerializer
     permission_classes = [IsAuthenticated, IsAdmin | IsSuperAdmin]
     queryset = Club.objects.all()
@@ -33,9 +25,6 @@ class AdminClubRetrieveUpdateDeleteView(generics.RetrieveUpdateDestroyAPIView):
 # CLUB MEMBERSHIPS (Assign Leaders/Executives)
 # -------------------------------
 class AdminClubMemberListCreateView(generics.ListCreateAPIView):
-    """
-    List members of a club or add a student to a club (with role)
-    """
     serializer_class = ClubMembershipSerializer
     permission_classes = [IsAuthenticated, IsAdmin | IsSuperAdmin]
 
@@ -45,13 +34,21 @@ class AdminClubMemberListCreateView(generics.ListCreateAPIView):
 
     def perform_create(self, serializer):
         club_id = self.kwargs.get('club_id')
-        serializer.save(club_id=club_id)
+        club = Club.objects.get(id=club_id)
+
+        student = serializer.validated_data['student']
+
+        # ✅ CHECK BEFORE SAVE
+        if ClubMembership.objects.filter(club=club, student=student).exists():
+            from rest_framework.exceptions import ValidationError
+            raise ValidationError("Student is already a member of this club.")
+
+        serializer.save(club=club)
+
 
 
 class AdminClubMemberRetrieveUpdateDeleteView(generics.RetrieveUpdateDestroyAPIView):
-    """
-    Retrieve, update (role), or remove a member from a club
-    """
+    """Retrieve, update (role), or remove a member from a club"""
     serializer_class = ClubMembershipSerializer
     permission_classes = [IsAuthenticated, IsAdmin | IsSuperAdmin]
     queryset = ClubMembership.objects.all()
@@ -61,21 +58,18 @@ class AdminClubMemberRetrieveUpdateDeleteView(generics.RetrieveUpdateDestroyAPIV
 # CLUB EVENTS (Approve/Manage)
 # -------------------------------
 class AdminClubEventListCreateView(generics.ListCreateAPIView):
-    """
-    List events for all clubs or create a new event
-    """
+    """List events for all clubs or create a new event"""
     serializer_class = ClubEventSerializer
     permission_classes = [IsAuthenticated, IsAdmin | IsSuperAdmin]
     queryset = ClubEvent.objects.all().order_by('-event_date')
 
     def perform_create(self, serializer):
+        # Automatically assign the user who created the event
         serializer.save(created_by=self.request.user)
 
 
 class AdminClubEventRetrieveUpdateDeleteView(generics.RetrieveUpdateDestroyAPIView):
-    """
-    Retrieve, update (approve/reject), or delete a club event
-    """
+    """Retrieve, update (approve/reject), or delete a club event"""
     serializer_class = ClubEventSerializer
     permission_classes = [IsAuthenticated, IsAdmin | IsSuperAdmin]
     queryset = ClubEvent.objects.all()
