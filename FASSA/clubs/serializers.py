@@ -70,3 +70,9 @@ class ClubEventSerializer(serializers.ModelSerializer):
             'event_date', 'is_approved', 'created_by', 'created_at'
         ]
         read_only_fields = ['id', 'created_by', 'created_at']
+
+
+class ClubEventApprovalSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ClubEvent
+        fields = ['is_approved']

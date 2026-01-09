@@ -1,9 +1,20 @@
-from rest_framework import generics
+from django.shortcuts import get_object_or_404
+from rest_framework import generics, status
+from rest_framework.views import APIView
+from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.exceptions import ValidationError
+
 from accounts.permissions import IsAdmin, IsSuperAdmin
 from clubs.models import Club, ClubMembership, ClubEvent
-from clubs.serializers import ClubSerializer, ClubMembershipSerializer, ClubEventSerializer
+from clubs.serializers import (
+    ClubSerializer,
+    ClubMembershipSerializer,
+    ClubEventSerializer,
+    ClubEventApprovalSerializer
+)
+from clubs.permissions import IsClubPresident # import the new permission
+
 
 
 # -------------------------------
@@ -32,25 +43,14 @@ class AdminClubMemberListCreateView(generics.ListCreateAPIView):
     permission_classes = [IsAuthenticated, IsAdmin | IsSuperAdmin]
 
     def get_queryset(self):
-        club_id = self.kwargs.get('club_id')
+        club_id = self.kwargs['club_id']
         return ClubMembership.objects.filter(club_id=club_id)
 
     def get_serializer_context(self):
         """Pass the club instance to the serializer"""
         context = super().get_serializer_context()
-        club_id = self.kwargs.get('club_id')
-        context['club'] = generics.get_object_or_404(Club, id=club_id)
+        context['club'] = get_object_or_404(Club, id=self.kwargs['club_id'])
         return context
-
-    def perform_create(self, serializer):
-        student = serializer.validated_data['student_id']
-        club = self.get_serializer_context()['club']
-
-        # Prevent adding the same student twice
-        if ClubMembership.objects.filter(club=club, student=student).exists():
-            raise ValidationError("Student is already a member of this club.")
-
-        serializer.save()  # Serializer handles student + club assignment
 
 
 class AdminClubMemberRetrieveUpdateDeleteView(generics.RetrieveUpdateDestroyAPIView):
@@ -70,12 +70,57 @@ class AdminClubEventListCreateView(generics.ListCreateAPIView):
     queryset = ClubEvent.objects.all().order_by('-event_date')
 
     def perform_create(self, serializer):
-        # Automatically assign the admin who created the event
+        """Automatically assign the admin who created the event"""
         serializer.save(created_by=self.request.user)
 
 
 class AdminClubEventRetrieveUpdateDeleteView(generics.RetrieveUpdateDestroyAPIView):
-    """Retrieve, update (approve/reject), or delete a club event"""
     serializer_class = ClubEventSerializer
     permission_classes = [IsAuthenticated, IsAdmin | IsSuperAdmin]
     queryset = ClubEvent.objects.all()
+
+    def destroy(self, request, *args, **kwargs):
+        event = self.get_object()
+        self.perform_destroy(event)
+        return Response(
+            {"message": f"Event '{event.title}' has been deleted successfully."},
+            status=status.HTTP_200_OK
+        )
+
+
+
+# -------------------------------
+# ADMIN EVENT APPROVAL
+# -------------------------------
+class AdminApproveClubEventView(APIView):
+    """Approve or reject a club event"""
+    permission_classes = [IsAuthenticated, IsAdmin | IsSuperAdmin]
+
+    def patch(self, request, pk):
+        event = get_object_or_404(ClubEvent, pk=pk)
+        serializer = ClubEventApprovalSerializer(event, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+
+        return Response(
+            {
+                "message": "Event approval updated",
+                "event": serializer.data
+            },
+            status=status.HTTP_200_OK
+        )
+
+class ClubPresidentEventCreateView(generics.CreateAPIView):
+    """
+    Allows a club President to create an event for their club.
+    """
+    serializer_class = ClubEventSerializer
+    permission_classes = [IsAuthenticated, IsClubPresident]
+
+    def perform_create(self, serializer):
+        club_id = self.kwargs.get('club_id')
+        serializer.save(
+            created_by=self.request.user,
+            club_id=club_id,
+            is_approved=False  # Admin approval required
+        )
