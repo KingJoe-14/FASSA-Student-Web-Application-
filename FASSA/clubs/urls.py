@@ -6,32 +6,34 @@ from clubs.views import (
     AdminClubMemberRetrieveUpdateDeleteView,
     AdminClubEventListCreateView,
     AdminClubEventRetrieveUpdateDeleteView,
+    AdminApproveClubEventView,   # ✅ MUST be imported
 )
+from clubs.views import ClubPresidentEventCreateView
+
 
 urlpatterns = [
-    # -------------------------------
-    # CLUBS CRUD
-    # -------------------------------
-    path('clubs/', AdminClubListCreateView.as_view(), name='admin-club-list-create'),
-    path('clubs/<int:pk>/', AdminClubRetrieveUpdateDeleteView.as_view(), name='admin-club-detail'),
+    # Clubs
+    path('clubs/', AdminClubListCreateView.as_view()),
+    path('clubs/<int:pk>/', AdminClubRetrieveUpdateDeleteView.as_view()),
 
-    # -------------------------------
-    # CLUB MEMBERSHIPS (leaders/executives)
-    # -------------------------------
+    # Members
+    path('clubs/<int:club_id>/members/', AdminClubMemberListCreateView.as_view()),
+    path('clubs/members/<int:pk>/', AdminClubMemberRetrieveUpdateDeleteView.as_view()),
+
+    # Events
+    path('events/', AdminClubEventListCreateView.as_view()),
+    path('events/<int:pk>/', AdminClubEventRetrieveUpdateDeleteView.as_view()),
+
+    # ✅ EVENT APPROVAL
     path(
-        'clubs/<int:club_id>/members/',
-        AdminClubMemberListCreateView.as_view(),
-        name='admin-club-member-list-create'
-    ),
-    path(
-        'clubs/members/<int:pk>/',
-        AdminClubMemberRetrieveUpdateDeleteView.as_view(),
-        name='admin-club-member-detail'
+        'events/<int:pk>/approve/',
+        AdminApproveClubEventView.as_view(),
+        name='admin-approve-event'
     ),
 
-    # -------------------------------
-    # CLUB EVENTS
-    # -------------------------------
-    path('events/', AdminClubEventListCreateView.as_view(), name='admin-club-event-list-create'),
-    path('events/<int:pk>/', AdminClubEventRetrieveUpdateDeleteView.as_view(), name='admin-club-event-detail'),
+    path(
+        'clubs/<int:club_id>/president/events/',
+        ClubPresidentEventCreateView.as_view(),
+        name='club-president-event-create'
+    ),
 ]

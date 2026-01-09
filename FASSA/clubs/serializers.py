@@ -3,7 +3,7 @@ from clubs.models import Club, ClubMembership, ClubEvent
 from accounts.models import User
 
 # -------------------------------
-# STUDENT SERIALIZER (nested for ClubMembership)
+# STUDENT SERIALIZER (nested output)
 # -------------------------------
 class StudentSerializer(serializers.ModelSerializer):
     class Meta:
@@ -25,27 +25,38 @@ class ClubSerializer(serializers.ModelSerializer):
 # CLUB MEMBERSHIP SERIALIZER
 # -------------------------------
 class ClubMembershipSerializer(serializers.ModelSerializer):
-    student_email = serializers.EmailField(write_only=True)
+    # Nested output fields
     student = StudentSerializer(read_only=True)
-    club = serializers.PrimaryKeyRelatedField(read_only=True)  # make read-only
+    club = ClubSerializer(read_only=True)
+
+    # Input field for POST only
+    student_id = serializers.PrimaryKeyRelatedField(
+        queryset=User.objects.filter(role='STUDENT'),
+        write_only=True
+    )
+
+    # Optional: default role
+    role = serializers.ChoiceField(
+        choices=ClubMembership.ROLE_CHOICES, default='MEMBER'
+    )
 
     class Meta:
         model = ClubMembership
-        fields = ['id', 'club', 'student', 'student_email', 'role', 'joined_at']
-        read_only_fields = ['id', 'student', 'joined_at', 'club']
-
-    def validate_student_email(self, email):
-        try:
-            user = User.objects.get(email=email, role='STUDENT')
-        except User.DoesNotExist:
-            raise serializers.ValidationError("Student with this email does not exist.")
-        return user
+        fields = ['id', 'club', 'student', 'role', 'joined_at', 'student_id']
+        read_only_fields = ['id', 'joined_at', 'student', 'club']
 
     def create(self, validated_data):
-        # Convert student_email into actual student object
-        student = validated_data.pop('student_email')
-        validated_data['student'] = student
-        return super().create(validated_data)
+        """
+        Assign student and club automatically from input and context.
+        """
+        student = validated_data.pop('student_id')
+        club = self.context['club']
+        membership = ClubMembership.objects.create(
+            student=student,
+            club=club,
+            **validated_data
+        )
+        return membership
 
 
 # -------------------------------
@@ -59,3 +70,9 @@ class ClubEventSerializer(serializers.ModelSerializer):
             'event_date', 'is_approved', 'created_by', 'created_at'
         ]
         read_only_fields = ['id', 'created_by', 'created_at']
+
+
+class ClubEventApprovalSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ClubEvent
+        fields = ['is_approved']
