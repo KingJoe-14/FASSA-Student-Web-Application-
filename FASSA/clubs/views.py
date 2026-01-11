@@ -11,11 +11,7 @@ from clubs.serializers import (
     ClubSerializer,
     ClubMembershipSerializer,
     ClubEventSerializer,
-    ClubEventApprovalSerializer,
-    ClubEventCreateSerializer,
 )
-from clubs.permissions import IsClubPresident # import the new permission
-
 
 
 # -------------------------------
@@ -62,10 +58,10 @@ class AdminClubMemberRetrieveUpdateDeleteView(generics.RetrieveUpdateDestroyAPIV
 
 
 # -------------------------------
-# CLUB EVENTS (Approve/Manage)
+# CLUB EVENTS (Admins create/manage)
 # -------------------------------
 class AdminClubEventListCreateView(generics.ListCreateAPIView):
-    """List events for all clubs or create a new event"""
+    """Admins can list all events or create a new event"""
     serializer_class = ClubEventSerializer
     permission_classes = [IsAuthenticated, IsAdmin | IsSuperAdmin]
     queryset = ClubEvent.objects.all().order_by('-event_date')
@@ -76,6 +72,7 @@ class AdminClubEventListCreateView(generics.ListCreateAPIView):
 
 
 class AdminClubEventRetrieveUpdateDeleteView(generics.RetrieveUpdateDestroyAPIView):
+    """Admins can retrieve, update, or delete events"""
     serializer_class = ClubEventSerializer
     permission_classes = [IsAuthenticated, IsAdmin | IsSuperAdmin]
     queryset = ClubEvent.objects.all()
@@ -86,42 +83,4 @@ class AdminClubEventRetrieveUpdateDeleteView(generics.RetrieveUpdateDestroyAPIVi
         return Response(
             {"message": f"Event '{event.title}' has been deleted successfully."},
             status=status.HTTP_200_OK
-        )
-
-
-
-# -------------------------------
-# ADMIN EVENT APPROVAL
-# -------------------------------
-class AdminApproveClubEventView(APIView):
-    """Approve or reject a club event"""
-    permission_classes = [IsAuthenticated, IsAdmin | IsSuperAdmin]
-
-    def patch(self, request, pk):
-        event = get_object_or_404(ClubEvent, pk=pk)
-        serializer = ClubEventApprovalSerializer(event, data=request.data, partial=True)
-        serializer.is_valid(raise_exception=True)
-        serializer.save()
-
-        return Response(
-            {
-                "message": "Event approval updated",
-                "event": serializer.data
-            },
-            status=status.HTTP_200_OK
-        )
-
-class ClubPresidentEventCreateView(generics.CreateAPIView):
-    """
-    Allows a club President to create an event for their club.
-    """
-    serializer_class = ClubEventCreateSerializer
-    permission_classes = [IsAuthenticated, IsClubPresident]
-
-    def perform_create(self, serializer):
-        club_id = self.kwargs.get('club_id')
-        serializer.save(
-            created_by=self.request.user,
-            club_id=club_id,
-            is_approved=False  # Admin approval required
         )
