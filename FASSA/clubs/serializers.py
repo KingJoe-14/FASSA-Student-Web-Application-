@@ -25,38 +25,62 @@ class ClubSerializer(serializers.ModelSerializer):
 # CLUB MEMBERSHIP SERIALIZER
 # -------------------------------
 class ClubMembershipSerializer(serializers.ModelSerializer):
-    # Nested output fields
+    # Nested output
     student = StudentSerializer(read_only=True)
     club = ClubSerializer(read_only=True)
 
-    # Input field for POST only
+    # Input only
     student_id = serializers.PrimaryKeyRelatedField(
         queryset=User.objects.filter(role='STUDENT'),
         write_only=True
     )
 
-    # Optional: default role
     role = serializers.ChoiceField(
-        choices=ClubMembership.ROLE_CHOICES, default='MEMBER'
+        choices=ClubMembership.ROLE_CHOICES,
+        default='MEMBER'
     )
 
     class Meta:
         model = ClubMembership
-        fields = ['id', 'club', 'student', 'role', 'joined_at', 'student_id']
+        fields = [
+            'id',
+            'club',
+            'student',
+            'student_id',
+            'role',
+            'executive_photo',
+            'executive_title',
+            'joined_at'
+        ]
         read_only_fields = ['id', 'joined_at', 'student', 'club']
 
+    def validate(self, attrs):
+        role = attrs.get('role', 'MEMBER')
+
+        executive_roles = [
+            'PRESIDENT',
+            'VICE_PRESIDENT',
+            'SECRETARY',
+            'TREASURER'
+        ]
+
+        if role in executive_roles:
+            if not attrs.get('executive_photo'):
+                raise serializers.ValidationError(
+                    {"executive_photo": "Executive photo is required."}
+                )
+
+        return attrs
+
     def create(self, validated_data):
-        """
-        Assign student and club automatically from input and context.
-        """
         student = validated_data.pop('student_id')
         club = self.context['club']
-        membership = ClubMembership.objects.create(
+
+        return ClubMembership.objects.create(
             student=student,
             club=club,
             **validated_data
         )
-        return membership
 
 
 # -------------------------------
@@ -77,8 +101,3 @@ class ClubEventApprovalSerializer(serializers.ModelSerializer):
         model = ClubEvent
         fields = ['is_approved']
 
-
-class ClubEventCreateSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = ClubEvent
-        fields = ['title', 'description', 'venue', 'event_date']

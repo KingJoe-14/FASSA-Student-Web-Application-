@@ -6,10 +6,7 @@ from clubs.views import (
     AdminClubMemberRetrieveUpdateDeleteView,
     AdminClubEventListCreateView,
     AdminClubEventRetrieveUpdateDeleteView,
-    AdminApproveClubEventView,   # ✅ MUST be imported
 )
-from clubs.views import ClubPresidentEventCreateView
-
 
 urlpatterns = [
     # Clubs
@@ -24,16 +21,5 @@ urlpatterns = [
     path('events/', AdminClubEventListCreateView.as_view()),
     path('events/<int:pk>/', AdminClubEventRetrieveUpdateDeleteView.as_view()),
 
-    # ✅ EVENT APPROVAL
-    path(
-        'events/<int:pk>/approve/',
-        AdminApproveClubEventView.as_view(),
-        name='admin-approve-event'
-    ),
 
-    path(
-        'clubs/<int:club_id>/president/events/',
-        ClubPresidentEventCreateView.as_view(),
-        name='club-president-event-create'
-    ),
 ]

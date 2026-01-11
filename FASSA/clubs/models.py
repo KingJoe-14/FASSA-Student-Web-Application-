@@ -28,16 +28,32 @@ class ClubMembership(models.Model):
         on_delete=models.CASCADE,
         related_name='memberships'
     )
+
     student = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
         limit_choices_to={'role': 'STUDENT'}
     )
+
     role = models.CharField(
         max_length=20,
         choices=ROLE_CHOICES,
         default='MEMBER'
     )
+
+    # 🔹 Executive-only display fields
+    executive_photo = models.ImageField(
+        upload_to='club_executives/',
+        null=True,
+        blank=True
+    )
+
+    executive_title = models.CharField(
+        max_length=100,
+        blank=True,
+        help_text="Optional title like 'Head of Operations'"
+    )
+
     joined_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
