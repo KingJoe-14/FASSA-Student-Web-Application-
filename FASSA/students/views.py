@@ -16,9 +16,7 @@ from announcements.models import Announcement
 from announcements.serializers import AnnouncementSerializer
 
 
-# ===========================
-# Courses
-# ===========================
+
 class AvailableCoursesView(generics.ListAPIView):
     """List all available courses students can register for"""
     queryset = Course.objects.all().order_by('code')
