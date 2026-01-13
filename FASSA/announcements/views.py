@@ -11,7 +11,6 @@ class AnnouncementListView(generics.ListAPIView):
     def get_queryset(self):
         return Announcement.objects.filter(is_active=True)
 
-# Admin / SuperAdmin CRUD
 class AnnouncementCreateView(generics.CreateAPIView):
     serializer_class = AnnouncementSerializer
     permission_classes = [IsAdmin | IsSuperAdmin]

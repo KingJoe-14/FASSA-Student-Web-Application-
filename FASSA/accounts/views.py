@@ -229,7 +229,7 @@ class PasswordResetRequestView(generics.GenericAPIView):
             user = User.objects.get(email=email)
         except User.DoesNotExist:
             # Do not reveal whether email exists
-            return Response({"detail": "If this email exists, an OTP will be sent."}, status=status.HTTP_200_OK)
+            return Response({"detail": "A code has been sent to this email."}, status=status.HTTP_200_OK)
 
         # Delete old OTPs before generating a new one
         PasswordResetOTP.objects.filter(email=user.email).delete()
