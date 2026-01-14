@@ -81,6 +81,6 @@ class AdminClubEventRetrieveUpdateDeleteView(generics.RetrieveUpdateDestroyAPIVi
         event = self.get_object()
         self.perform_destroy(event)
         return Response(
-            {"message": f"Event '{event.title}' has been deleted successfully."},
+            {"message": f"Event '{event.title}' deleted successfully."},
             status=status.HTTP_200_OK
         )
