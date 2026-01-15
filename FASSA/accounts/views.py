@@ -189,7 +189,6 @@ class SuperAdminUserView(generics.ListCreateAPIView):
             raise PermissionDenied("You do not have permission to create accounts.")
 
 
-# -------------------- Student List & Detail --------------------
 class StudentListView(generics.ListAPIView):
     serializer_class = StudentManagementSerializer
     permission_classes = [IsAdmin | IsSuperAdmin]
