@@ -156,7 +156,6 @@ class ResendVerificationOTPView(APIView):
             # Delete old OTP(s)
             AccountVerificationOTP.objects.filter(email=email).delete()
 
-        # Generate and save new OTP
         otp_code = AccountVerificationOTP.generate_otp()
         AccountVerificationOTP.objects.create(email=email, otp=otp_code)
 
