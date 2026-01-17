@@ -153,7 +153,6 @@ class ResendVerificationOTPView(APIView):
                     status=status.HTTP_429_TOO_MANY_REQUESTS
                 )
 
-            # Delete old OTP(s)
             AccountVerificationOTP.objects.filter(email=email).delete()
 
         otp_code = AccountVerificationOTP.generate_otp()
