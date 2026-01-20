@@ -1,9 +1,12 @@
-from django.urls import path
-from .views import LoginView, UserProfileView, StudentRegisterView, SuperAdminUserView, VerifyStudentAccountView
-from .views import ResendVerificationOTPView
-from .views import PasswordResetRequestView, PasswordResetConfirmView
-from .views import StudentListView, StudentDetailView
-from .views import AdminListView, AdminDetailView
+from django.urls import path, include
+from .views.auth.login import LoginView
+from .views.auth.password_reset import PasswordResetRequestView, PasswordResetConfirmView
+from .views.auth.verification import VerifyStudentAccountView, ResendVerificationOTPView
+from .views.users.students import StudentRegisterView, StudentListView, StudentDetailView
+from .views.users.admins import AdminListView, AdminDetailView
+from .views.users.superadmin import SuperAdminUserView
+from .views.users.profile import UserProfileView
+
 
 
 
