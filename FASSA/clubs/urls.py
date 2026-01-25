@@ -9,7 +9,6 @@ from clubs.views import (
 )
 
 urlpatterns = [
-    # Clubs
     path('clubs/', AdminClubListCreateView.as_view()),
     path('clubs/<int:pk>/', AdminClubRetrieveUpdateDeleteView.as_view()),
 
